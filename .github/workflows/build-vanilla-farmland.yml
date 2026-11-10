@@ -35,6 +35,9 @@ jobs:
       - name: Build
         run: |
           chmod +x ./gradlew
+          # build.gradle.kts reads `git config user.name` (fails on a clean runner)
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
           set -o pipefail
           ./gradlew build --no-daemon --stacktrace 2>&1 | tee build.log
 
