@@ -288,35 +288,66 @@ public abstract class AbstractCustomEventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onPistonExtend(BlockPistonExtendEvent event) {
-        Optional<CustomCropsWorld<?>> world = BukkitCustomCropsPlugin.getInstance().getWorldManager().getWorld(event.getBlock().getWorld());
-        if (world.isEmpty()){
-            return;
-        }
-        CustomCropsWorld<?> w = world.get();
-        for (Block block : event.getBlocks()) {
-            Pos3 pos3 = Pos3.from(block.getLocation());
-            if (w.getLoadedBlockState(pos3).isPresent()) {
-                event.setCancelled(true);
-                return;
-            }
-        }
+        handlePiston(event.getBlock(), event.getBlocks(), event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onPistonRetract(BlockPistonRetractEvent event) {
-        Optional<CustomCropsWorld<?>> world = BukkitCustomCropsPlugin.getInstance().getWorldManager().getWorld(event.getBlock().getWorld());
+        handlePiston(event.getBlock(), event.getBlocks(), event);
+    }
+
+    /**
+     * [vanilla-farmland] Pistons behave like vanilla:
+     * - a crop that is pushed/destroyed by a piston breaks and drops its loot (like vanilla crops)
+     * - a crop whose supporting block is moved breaks as well
+     * - other CustomCrops blocks (sprinklers etc.) keep the original behaviour (piston is cancelled)
+     */
+    private void handlePiston(Block piston, List<Block> blocks, Cancellable event) {
+        Optional<CustomCropsWorld<?>> world = BukkitCustomCropsPlugin.getInstance().getWorldManager().getWorld(piston.getWorld());
         if (world.isEmpty()){
             return;
         }
         CustomCropsWorld<?> w = world.get();
-        for (Block block : event.getBlocks()) {
+        LinkedHashSet<Pos3> cropsToBreak = new LinkedHashSet<>();
+        for (Block block : blocks) {
             Pos3 pos3 = Pos3.from(block.getLocation());
-            if (w.getLoadedBlockState(pos3).isPresent()) {
+            Optional<CustomCropsBlockState> state = w.getLoadedBlockState(pos3);
+            if (state.isPresent()) {
+                if (state.get().type() instanceof CropBlock) {
+                    cropsToBreak.add(pos3);
+                    continue;
+                }
                 event.setCancelled(true);
                 return;
             }
+            Pos3 above = pos3.add(0, 1, 0);
+            Optional<CustomCropsBlockState> aboveState = w.getLoadedBlockState(above);
+            if (aboveState.isPresent() && aboveState.get().type() instanceof CropBlock) {
+                cropsToBreak.add(above);
+            }
+        }
+        for (Pos3 pos3 : cropsToBreak) {
+            breakCropLikeVanilla(pos3.toLocation(piston.getWorld()));
         }
     }
+
+    private void breakCropLikeVanilla(Location location) {
+        String stageID = this.itemManager.anyID(location);
+        this.itemManager.handlePhysicsBreak(location, stageID, DUMMY_CANCELLABLE);
+        this.itemManager.remove(location, ExistenceForm.ANY);
+        BukkitCustomCropsPlugin.getInstance().getWorldManager().getWorld(location.getWorld())
+                .ifPresent(w -> w.removeBlockState(Pos3.from(location)));
+    }
+
+    private static final Cancellable DUMMY_CANCELLABLE = new Cancellable() {
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+        @Override
+        public void setCancelled(boolean b) {
+        }
+    };
 
     @EventHandler(ignoreCancelled = true)
     public void onItemDamage(PlayerItemDamageEvent event) {
@@ -442,6 +473,18 @@ public abstract class AbstractCustomEventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreakBlock(BlockBreakBlockEvent event) {
         Block block = event.getBlock();
+        // [vanilla-farmland] crops are custom blocks (e.g. Nexo string blocks): resolve their real id,
+        // drop the crop loot instead of the vanilla string/tripwire drops (like water washing away wheat)
+        Optional<CustomCropsWorld<?>> cropWorld = BukkitCustomCropsPlugin.getInstance().getWorldManager().getWorld(block.getWorld());
+        if (cropWorld.isPresent()) {
+            Optional<CustomCropsBlockState> state = cropWorld.get().getLoadedBlockState(Pos3.from(block.getLocation()));
+            if (state.isPresent() && state.get().type() instanceof CropBlock) {
+                event.getDrops().clear();
+                itemManager.handlePhysicsBreak(block.getLocation(), itemManager.anyID(block.getLocation()), DUMMY_CANCELLABLE);
+                cropWorld.get().removeBlockState(Pos3.from(block.getLocation()));
+                return;
+            }
+        }
         itemManager.handlePhysicsBreak(block.getLocation(), block.getBlockData().getAsString(), new Cancellable() {
             @Override
             public boolean isCancelled() {

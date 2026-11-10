@@ -198,6 +198,12 @@ public class PotBlock extends AbstractCustomCropsBlock {
             return;
         }
 
+        // [vanilla-farmland] vanilla pot blocks (e.g. farmland made with a hoe) stay vanilla - no data, no limits
+        if (config.disablePluginMechanism()) {
+            ActionManager.trigger(context, config.placeActions());
+            return;
+        }
+
         CustomCropsWorld<?> world = event.world();
         Pos3 pos3 = Pos3.from(event.location());
         if (world.setting().potPerChunk() >= 0) {
@@ -335,6 +341,17 @@ public class PotBlock extends AbstractCustomCropsBlock {
 
     public CustomCropsBlockState fixOrGetState(CustomCropsWorld<?> world, Pos3 pos3, PotConfig potConfig, String blockID) {
         if (potConfig == null) return null;
+        // [vanilla-farmland] Vanilla blocks used as pots (vanilla-farmland / vanilla-blocks) must stay 100% vanilla:
+        // never store CustomCrops data for them. Callers get a temporary, in-memory state instead.
+        if (potConfig.disablePluginMechanism()) {
+            world.getBlockState(pos3).ifPresent(previous -> {
+                if (previous.type() instanceof PotBlock) world.removeBlockState(pos3); // clean legacy data
+            });
+            CustomCropsBlockState temp = createBlockState();
+            id(temp, potConfig.id());
+            water(temp, potConfig.isWet(blockID) ? 1 : 0);
+            return temp;
+        }
         Optional<CustomCropsBlockState> optionalPotState = world.getBlockState(pos3);
         if (optionalPotState.isPresent()) {
             CustomCropsBlockState potState = optionalPotState.get();
@@ -360,6 +377,12 @@ public class PotBlock extends AbstractCustomCropsBlock {
         BukkitCustomCropsPlugin plugin = BukkitCustomCropsPlugin.getInstance();
         if (config == null) {
             plugin.getPluginLogger().warn("Pot data is removed at location[" + world.worldName() + "," + location + "] because the pot config[" + id(state) + "] has been removed.");
+            world.removeBlockState(location);
+            return;
+        }
+
+        // [vanilla-farmland] legacy data stored for vanilla pots by older versions is removed
+        if (config.disablePluginMechanism()) {
             world.removeBlockState(location);
             return;
         }
