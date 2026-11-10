@@ -39,7 +39,16 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@users.noreply.github.com"
           set -o pipefail
-          ./gradlew build --no-daemon --stacktrace 2>&1 | tee build.log
+          # repozytorium autora (repo.momirealms.net) bywa wolne - do 3 prób
+          for attempt in 1 2 3; do
+            if ./gradlew build --no-daemon --stacktrace \
+                 -Dorg.gradle.internal.http.connectionTimeout=120000 \
+                 -Dorg.gradle.internal.http.socketTimeout=120000 2>&1 | tee build.log; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying in 30s..."; sleep 30
+          done
+          exit 1
 
       - name: Report build errors as annotation
         if: failure()
