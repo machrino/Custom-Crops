@@ -1,0 +1,58 @@
+# Kompilacja CustomCrops z modyfikacją "vanilla-farmland" (gałąź vanilla-farmland).
+# Uruchamia się automatycznie po każdej zmianie na tej gałęzi albo ręcznie:
+# Actions -> "Build CustomCrops (vanilla-farmland)" -> Run workflow.
+# Gotowy plik .jar trafia do zakładki Releases.
+name: Build CustomCrops (vanilla-farmland)
+
+on:
+  push:
+    branches: [ vanilla-farmland ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vanilla-farmland
+        uses: actions/checkout@v4
+        with:
+          ref: vanilla-farmland
+
+      - name: Set up JDK 17 + 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CustomCrops-vanilla-farmland
+          path: target/*.jar
+          if-no-files-found: error
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(grep '^project_version=' gradle.properties | cut -d= -f2)
+          TAG="v${VERSION}-vanilla-${{ github.run_number }}"
+          SHA=$(git rev-parse HEAD)
+          gh release create "$TAG" target/*.jar \
+            --target "$SHA" \
+            --title "CustomCrops ${VERSION} (vanilla farmland) #${{ github.run_number }}" \
+            --notes "Zbudowane automatycznie z gałęzi vanilla-farmland (commit ${SHA:0:8}). Farmland i inne bloki vanilla bez danych CustomCrops, tłoki i woda niszczą uprawy z dropem jak w vanilli." \
+            --latest
