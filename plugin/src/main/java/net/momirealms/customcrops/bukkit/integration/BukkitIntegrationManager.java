@@ -19,7 +19,7 @@ package net.momirealms.customcrops.bukkit.integration;
 
 import net.momirealms.customcrops.api.BukkitCustomCropsPlugin;
 import net.momirealms.customcrops.api.integration.*;
-import net.momirealms.customcrops.bukkit.integration.entity.ItemsAdderEntityProvider;
+// import net.momirealms.customcrops.bukkit.integration.entity.ItemsAdderEntityProvider; // [vanilla-farmland] ItemsAdder wyłączony
 import net.momirealms.customcrops.bukkit.integration.entity.MythicEntityProvider;
 import net.momirealms.customcrops.bukkit.integration.entity.VanillaEntityProvider;
 import net.momirealms.customcrops.bukkit.integration.item.*;
@@ -63,9 +63,9 @@ public class BukkitIntegrationManager implements IntegrationManager {
     @Override
     public void load() {
         registerEntityProvider(new VanillaEntityProvider());
-        if (isHooked("ItemsAdder")) {
-            registerEntityProvider(new ItemsAdderEntityProvider());
-        }
+        // if (isHooked("ItemsAdder")) {
+        // registerEntityProvider(new ItemsAdderEntityProvider());
+        // }
         if (isHooked("RealisticSeasons")) {
             registerSeasonProvider(new RealisticSeasonsProvider());
         } else if (isHooked("AdvancedSeasons")) {

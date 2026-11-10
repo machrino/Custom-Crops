@@ -54,7 +54,7 @@ dependencies {
     compileOnly("pers.neige.neigeitems:NeigeItems:1.17.13")
     compileOnly("io.lumine:Mythic-Dist:5.6.2")
     compileOnly("net.momirealms:custom-fishing:2.3.3")
-    compileOnly("com.github.LoneDev6:api-itemsadder:3.6.3-beta-14")
+    // compileOnly("com.github.LoneDev6:api-itemsadder:3.6.3-beta-14") [vanilla-farmland] ItemsAdder wyłączony (niepotrzebny, a jego API nie jest publicznie dostępne):
     // eco
     compileOnly("com.willfp:eco:6.70.1")
     compileOnly("com.willfp:EcoJobs:3.56.1")

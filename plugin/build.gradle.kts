@@ -43,8 +43,9 @@ tasks {
         from(zipTree(project(":compatibility-nexo-r1").tasks.jar.get().archiveFile))
         from(zipTree(project(":compatibility-oraxen-r1").tasks.jar.get().archiveFile))
         from(zipTree(project(":compatibility-oraxen-r2").tasks.jar.get().archiveFile))
-        from(zipTree(project(":compatibility-itemsadder-r1").tasks.jar.get().archiveFile))
-        from(zipTree(project(":compatibility-itemsadder-r2").tasks.jar.get().archiveFile))
+        // [vanilla-farmland] ItemsAdder wyłączony (niepotrzebny, a jego API nie jest publicznie dostępne): 
+        // from(zipTree(project(":compatibility-itemsadder-r1").tasks.jar.get().archiveFile))
+        // from(zipTree(project(":compatibility-itemsadder-r2").tasks.jar.get().archiveFile))
         from(zipTree(project(":compatibility-crucible-r1").tasks.jar.get().archiveFile))
         from(zipTree(project(":compatibility-craftengine-r1").tasks.jar.get().archiveFile))
         from(zipTree(project(":compatibility-craftengine-r2").tasks.jar.get().archiveFile))
